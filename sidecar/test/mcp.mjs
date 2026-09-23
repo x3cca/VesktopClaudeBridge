@@ -63,7 +63,7 @@ const cfg = {
 };
 
 const server = createMcpServer(bridge, cfg, "test");
-const client = new Client({ name: "vencord-mcp-test", version: "1.0.0" }, { capabilities: {} });
+const client = new Client({ name: "vencord-test", version: "1.0.0" }, { capabilities: {} });
 const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
 try {
