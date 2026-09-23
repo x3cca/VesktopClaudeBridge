@@ -18,6 +18,7 @@ import {
     listGuildMembers,
     listGuildRoles,
     listGuilds,
+    listScheduledEvents,
     parseMessageLink,
     searchMessages,
     selectedChannel,
@@ -202,6 +203,11 @@ export const handlers: Record<RpcMethod, RpcHandler> = {
     async channels(params: RpcParams["channels"]): Promise<RpcResults["channels"]> {
         if (!params?.guildId) throw fail("bad_params", "guildId is required");
         return { channels: listChannels(params.guildId) };
+    },
+
+    async scheduledEvents(params: RpcParams["scheduledEvents"]): Promise<RpcResults["scheduledEvents"]> {
+        if (!params?.guildId) throw fail("bad_params", "guildId is required");
+        return { events: await listScheduledEvents(params.guildId) };
     },
 
     // Takes no params: there is one private-channel list per account and nothing

@@ -250,6 +250,7 @@ Note that the two configs are separate stores, not one shared one — changes yo
 | `discord_history` | paging back past what the client has cached |
 | `discord_reactors` | who reacted, not how many — sign-up posts, "did I react", overlap between two messages |
 | `discord_guilds` / `discord_channels` | turning "the modding server" into an id |
+| `discord_scheduled_events` | upcoming, active, and past scheduled events in a server, with times, status, place, recurrence, and links |
 | `discord_dms` | "the DM with <person>" — the only way to find one, since `discord_channels` can't see DMs |
 | `discord_status` | anything above returned `no_client` |
 
@@ -309,6 +310,7 @@ If a write path is ever added, it should be draft-into-composer: the model write
 - [x] Third eye — watch a channel in the background, read it back on demand
 - [x] `discord_reactors` — expand a reaction count into the accounts behind it
 - [x] `discord_dms` — DM and group-DM listing with recipients, plus an `allowDms` allowlist
+- [x] `discord_scheduled_events` — read a server's scheduled events, including recurrence rules
 - [x] Per-DM consent prompts in the client, with temporary and permanent grants
 - [ ] `discord_threads` — forum channel listing and thread reads
 - [ ] Mark ranges (shift-click two messages) rather than a fixed context window

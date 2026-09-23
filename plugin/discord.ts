@@ -24,6 +24,8 @@ import {
     GuildRoleStore,
     GuildStore,
     MessageStore,
+    PermissionStore,
+    PermissionsBits,
     RestAPI,
     SelectedChannelStore,
     SelectedGuildStore,
@@ -44,6 +46,8 @@ import type {
     BridgeReaction,
     BridgeReplyRef,
     BridgeRole,
+    BridgeScheduledEvent,
+    BridgeScheduledEventRecurrenceRule,
     BridgeUser,
     RpcError
 } from "./protocol";
@@ -936,6 +940,67 @@ export function listChannels(guildId: string): BridgeChannel[] {
     }
 
     return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Fetch a guild's scheduled events through the signed-in client's REST layer. */
+export async function listScheduledEvents(guildId: string): Promise<BridgeScheduledEvent[]> {
+    if (!/^\d{1,24}$/.test(guildId) || !GuildStore.getGuild(guildId)) {
+        throw fail("forbidden", "That guild is not accessible to the signed-in Discord account.");
+    }
+
+    const response = await RestAPI.get({ url: `/guilds/${guildId}/scheduled-events` });
+    if (!Array.isArray(response?.body)) {
+        throw fail("discord_error", "Discord returned an invalid scheduled-event list.");
+    }
+
+    return response.body
+        .filter((event: any) => String(event?.guild_id ?? "") === guildId)
+        .map((event: any): BridgeScheduledEvent => {
+            const rawChannel = event.channel_id ? ChannelStore.getChannel(String(event.channel_id)) : null;
+            const channelIsAccessible = Boolean(
+                rawChannel &&
+                String(rawChannel.guild_id ?? "") === guildId &&
+                PermissionStore.can(PermissionsBits.VIEW_CHANNEL, rawChannel)
+            );
+            const channel = channelIsAccessible ? toBridgeChannel(rawChannel) : null;
+            const rawRule = event.recurrence_rule;
+            const recurrenceRule: BridgeScheduledEventRecurrenceRule | null = rawRule ? {
+                start: String(rawRule.start),
+                end: rawRule.end ?? null,
+                frequency: Number(rawRule.frequency),
+                interval: Number(rawRule.interval),
+                byWeekday: rawRule.by_weekday ?? null,
+                byNWeekday: rawRule.by_n_weekday ?? null,
+                byMonth: rawRule.by_month ?? null,
+                byMonthDay: rawRule.by_month_day ?? null,
+                byYearDay: rawRule.by_year_day ?? null,
+                count: rawRule.count ?? null
+            } : null;
+            const statusCode = Number(event.status);
+            const status = ({
+                1: "SCHEDULED",
+                2: "ACTIVE",
+                3: "COMPLETED",
+                4: "CANCELED"
+            } as Record<number, BridgeScheduledEvent["status"]>)[statusCode] ?? "UNKNOWN";
+
+            return {
+                id: String(event.id),
+                guildId,
+                name: String(event.name ?? "(unnamed event)"),
+                description: event.description ?? null,
+                startTime: String(event.scheduled_start_time),
+                endTime: event.scheduled_end_time ?? null,
+                status,
+                statusCode,
+                entityType: Number(event.entity_type),
+                channelId: channel?.id ?? null,
+                channelName: channel?.name ?? null,
+                location: event.entity_metadata?.location ?? null,
+                recurrenceRule,
+                url: `https://discord.com/events/${guildId}/${String(event.id)}`
+            };
+        });
 }
 
 /**

@@ -541,6 +541,58 @@ export function createMcpServer(bridge: Bridge, cfg: Config, version: string): M
     );
 
     server.registerTool(
+        "discord_scheduled_events",
+        {
+            title: "List scheduled events in a server",
+            description:
+                "List a server's scheduled events, including start and end times, status, visible channel or external location, recurrence rules, and Discord event links.",
+            inputSchema: {
+                guildId: z.string().describe("Server id, from discord_guilds.")
+            },
+            annotations: { readOnlyHint: true }
+        },
+        async ({ guildId }): Promise<TextResult> => {
+            try {
+                if (cfg.allowGuilds.length && !cfg.allowGuilds.includes(guildId)) {
+                    return failure(
+                        new BridgeError({ code: "forbidden", message: `Guild ${guildId} is not allowlisted.` })
+                    );
+                }
+
+                const { events } = await bridge.call("scheduledEvents", { guildId });
+                if (!events.length) return text("No scheduled events in that server.");
+
+                const time = (value: string | null) => value
+                    ? new Intl.DateTimeFormat("en-CA", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        timeZone: cfg.timezone
+                    }).format(new Date(value))
+                    : "not specified";
+
+                return text(events.map(event => {
+                    const place = event.location ?? event.channelName ?? "not specified";
+                    const recurrence = event.recurrenceRule
+                        ? JSON.stringify(event.recurrenceRule)
+                        : "none";
+                    return [
+                        `## ${event.name}`,
+                        `- Start: ${time(event.startTime)} (${cfg.timezone})`,
+                        `- End: ${time(event.endTime)} (${cfg.timezone})`,
+                        `- Status: ${event.status}`,
+                        `- Location/channel: ${place}`,
+                        `- Recurrence: ${recurrence}`,
+                        `- Link: ${event.url}`,
+                        event.description ? `- Description: ${event.description}` : ""
+                    ].filter(Boolean).join("\n");
+                }).join("\n\n"));
+            } catch (err) {
+                return failure(err);
+            }
+        }
+    );
+
+    server.registerTool(
         "discord_dms",
         {
             title: "List direct messages",

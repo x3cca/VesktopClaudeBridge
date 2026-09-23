@@ -295,6 +295,36 @@ export interface BridgeGuild {
     name: string;
 }
 
+export interface BridgeScheduledEventRecurrenceRule {
+    start: string;
+    end: string | null;
+    frequency: number;
+    interval: number;
+    byWeekday: number[] | null;
+    byNWeekday: { n: number; day: number; }[] | null;
+    byMonth: number[] | null;
+    byMonthDay: number[] | null;
+    byYearDay: number[] | null;
+    count: number | null;
+}
+
+export interface BridgeScheduledEvent {
+    id: string;
+    guildId: string;
+    name: string;
+    description: string | null;
+    startTime: string;
+    endTime: string | null;
+    status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELED" | "UNKNOWN";
+    statusCode: number;
+    entityType: number;
+    channelId: string | null;
+    channelName: string | null;
+    location: string | null;
+    recurrenceRule: BridgeScheduledEventRecurrenceRule | null;
+    url: string;
+}
+
 /**
  * One member of a guild, as the client's own cache happens to hold them.
  *
@@ -431,6 +461,7 @@ export type RpcMethod =
     | "third_eye.drain"
     | "guilds"
     | "channels"
+    | "scheduledEvents"
     | "dms"
     | "reactors"
     | "pollVoters"
@@ -473,6 +504,7 @@ export interface RpcParams {
     "third_eye.drain": { consume?: boolean; notableOnly?: boolean; limit?: number; };
     guilds: Record<string, never>;
     channels: { guildId: string; };
+    scheduledEvents: { guildId: string; };
     /**
      * Takes nothing. The private-channel list is not scoped by anything the
      * caller could pass -- there is exactly one of it per account.
@@ -556,6 +588,7 @@ export interface RpcResults {
     };
     guilds: { guilds: BridgeGuild[]; };
     channels: { channels: BridgeChannel[]; };
+    scheduledEvents: { events: BridgeScheduledEvent[]; };
     /** Already sorted most-recently-active first; the sidecar renders in order. */
     dms: { dms: BridgeDm[]; };
     reactors: {
