@@ -91,8 +91,8 @@ function dmKey(channelId: string | null | undefined): string[] {
  * compile. The five that return nothing each earn it:
  *
  *  - `ping` carries the signed-in account and no channel at all.
- *  - `guilds` and `channels` read guild stores, which by construction hold no
- *    private channels — that gap is the whole reason `dms` had to be added.
+ *  - `guilds`, `channels` and `scheduledEvents` are guild-scoped, which by
+ *    construction holds no private channels — that gap is why `dms` exists.
  *  - `marked.clear` destroys and discloses nothing; it returns a count. Gating
  *    it would make a DM mark permanently unclearable under `off`, which is the
  *    same dead end the sidecar already refuses to build, for the same reason.
@@ -109,6 +109,7 @@ const REACHES: Record<RpcMethod, (params: any) => string[]> = {
     ping: () => [],
     guilds: () => [],
     channels: () => [],
+    scheduledEvents: () => [],
     "marked.clear": () => [],
     "third_eye.state": () => [],
 
