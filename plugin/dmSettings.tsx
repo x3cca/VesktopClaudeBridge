@@ -21,7 +21,8 @@
  * around. Nothing here is worth a rebuild over a renamed export.
  */
 
-import { Button, React, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { React, useState } from "@webpack/common";
 
 import { alwaysAllowed, LISTING_KEY, revokeForever } from "./dmLedger";
 
@@ -98,8 +99,8 @@ export function DmAllowList() {
                             </div>
                         </div>
                         <Button
-                            size={Button.Sizes.SMALL}
-                            color={Button.Colors.RED}
+                            size="small"
+                            variant="dangerPrimary"
                             onClick={() => {
                                 revokeForever(entry.key);
                                 setTick(n => n + 1);

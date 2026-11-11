@@ -13,7 +13,7 @@ import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/Co
 import { copyToClipboard } from "@utils/clipboard";
 import definePlugin, { IconComponent, OptionType } from "@utils/types";
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { ContextMenuApi, GuildStore, Menu, Toasts } from "@webpack/common";
+import { ContextMenuApi, GuildStore, Menu, showToast } from "@webpack/common";
 
 import { BridgeClient, PLUGIN_VERSION } from "./bridge";
 import {
@@ -46,16 +46,16 @@ import {
 
 let client: BridgeClient | null = null;
 
-/** `Toasts.Type` members are strings, not the numeric enum you'd expect. */
-function toast(message: string, type: string) {
+/** Toast variants: "default" | "success" | "critical". */
+function toast(message: string, type: "default" | "success" | "critical") {
     if (!settings.store.showToasts) return;
-    Toasts.show({ message, id: Toasts.genId(), type });
+    showToast({ text: message, variant: type });
 }
 
 function notifyMarked(count: number) {
     toast(
         `Marked ${count} message${count === 1 ? "" : "s"} for Claude (${markCount()} in queue)`,
-        Toasts.Type.SUCCESS
+        "success"
     );
     client?.notify("marked", { queued: markCount() });
 }
@@ -119,7 +119,7 @@ function clearQueue() {
     const cleared = clearMarks();
     toast(
         cleared ? `Cleared ${cleared} mark${cleared === 1 ? "" : "s"}` : "Nothing to clear",
-        cleared ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE
+        cleared ? "success" : "default"
     );
     client?.notify("marked", { queued: markCount(), cleared });
 }
@@ -165,10 +165,10 @@ async function copyForClaude(text: string, said: string) {
         await copyToClipboard(text);
     } catch (err: any) {
         console.error("[VesktopClaudeBridge] clipboard write failed:", err);
-        toast(`Could not copy that: ${err?.message ?? err}`, Toasts.Type.FAILURE);
+        toast(`Could not copy that: ${err?.message ?? err}`, "critical");
         return;
     }
-    toast(said, Toasts.Type.SUCCESS);
+    toast(said, "success");
 }
 
 function idLabel(entry: CopyableId): string {
@@ -236,19 +236,19 @@ function CopyIdsItem(rawMessage: any, channel: BridgeChannel) {
 async function toggleThirdEye() {
     if (isWatching()) {
         const st = stopThirdEye();
-        toast(`Third eye off — ${st.pending} unread discarded`, Toasts.Type.MESSAGE);
+        toast(`Third eye off — ${st.pending} unread discarded`, "default");
         return;
     }
 
     const channel = selectedChannel();
     if (!channel) {
-        toast("Open a channel first", Toasts.Type.FAILURE);
+        toast("Open a channel first", "critical");
         return;
     }
     if (channel.isDm && !settings.store.thirdEyeWatchDms) {
         // Refusing here rather than at the drain means DM content never enters
         // the renderer's buffer at all, which is the stronger guarantee.
-        toast("Third eye doesn't watch DMs — turn it on in plugin settings", Toasts.Type.FAILURE);
+        toast("Third eye doesn't watch DMs — turn it on in plugin settings", "critical");
         return;
     }
 
@@ -259,7 +259,7 @@ async function toggleThirdEye() {
     // nothing reads it until you next say something to Claude.
     toast(
         `Third eye on — #${channel.name} · Claude picks this up on your next message`,
-        Toasts.Type.SUCCESS
+        "success"
     );
 }
 
@@ -292,7 +292,7 @@ function toggleDmPrompts() {
         mode === "allow"
             ? "Claude asks before reading your DMs again"
             : "Claude can read your DMs without asking — stays on until you untick it",
-        Toasts.Type.MESSAGE
+        "default"
     );
 }
 
@@ -303,7 +303,7 @@ async function markCurrentChannel() {
         notifyMarked(snapshot.messages.length);
     } catch (err: any) {
         console.error("[VesktopClaudeBridge] grab failed:", err);
-        toast(`Could not grab this channel: ${err?.message ?? err}`, Toasts.Type.FAILURE);
+        toast(`Could not grab this channel: ${err?.message ?? err}`, "critical");
     }
 }
 
@@ -566,7 +566,7 @@ export default definePlugin({
                 // the worse failure.
                 toast(
                     `Third eye lapsed after 4h${channel ? ` on #${channel.name}` : ""} — turn it back on if you still want it`,
-                    Toasts.Type.MESSAGE
+                    "default"
                 );
             }
         );
@@ -574,7 +574,7 @@ export default definePlugin({
         client = new BridgeClient(handlers, currentUser, (connected, detail) => {
             if (connected) {
                 console.log(`[VesktopClaudeBridge] connected — ${detail ?? ""}`);
-                toast("Claude bridge connected", Toasts.Type.SUCCESS);
+                toast("Claude bridge connected", "success");
             } else {
                 console.debug(`[VesktopClaudeBridge] disconnected — ${detail ?? ""}`);
             }
